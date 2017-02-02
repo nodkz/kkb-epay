@@ -1,0 +1,57 @@
+{
+  "name": "kkb-epay",
+  "version": "0.0.0-semantically-released",
+  "description": "Visa/MasteCard payment gateway via EPAY processing (Qazkom bank, Kazakhstan).",
+  "main": "index.js",
+  "repository": "https://github.com/nodkz/kkb-epay",
+  "author": "Nodkz (pavel.chertorogov@gmail.com)",
+  "keywords": [
+    "epay",
+    "qazkom",
+    "epay.kkb.kz",
+    "Kazkommertsbank",
+    "visa",
+    "mastercard",
+    "payment gateway"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nodkz/kkb-epay/issues"
+  },
+  "homepage": "https://github.com/nodkz/kkb-epay",
+  "devDependencies": {
+    "babel-cli": "^6.22.2",
+    "babel-eslint": "^7.1.1",
+    "babel-plugin-transform-flow-strip-types": "^6.22.0",
+    "babel-plugin-transform-object-rest-spread": "^6.22.0",
+    "babel-preset-env": "^1.1.8",
+    "eslint": "^3.14.1",
+    "eslint-config-airbnb-base": "^11.0.1",
+    "eslint-plugin-flowtype": "^2.30.0",
+    "eslint-plugin-import": "^2.2.0",
+    "flow-bin": "^0.38.0",
+    "jest": "^18.1.0",
+    "jest-babel": "^1.0.1"
+  },
+  "dependencies": {
+    "object-path": "^0.11.3",
+    "xml2js": "^0.4.17"
+  },
+  "peerDependencies": {},
+  "scripts": {
+    "build": "npm run build-cjs && npm run build-flow && npm run build-es",
+    "build-cjs": "rimraf lib && babel src --ignore __tests__,__mocks__ -d lib",
+    "build-es": "rimraf es && BABEL_ENV=es babel src --ignore __tests__,__mocks__ -d es",
+    "build-flow": "find ./src -name '*.js' -not -path '*/__*' | while read filepath; do cp $filepath `echo $filepath | sed 's/\\/src\\//\\/lib\\//g'`.flow; done",
+    "coverage": "jest --coverage",
+    "lint": "eslint src test *.js",
+    "test": "jest",
+    "test-watch": "jest --watch",
+    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
+  },
+  "jest": {
+    "testPathDirs": [
+      "<rootDir>/src"
+    ]
+  }
+}

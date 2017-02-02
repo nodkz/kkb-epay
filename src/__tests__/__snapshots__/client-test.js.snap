@@ -1,0 +1,7 @@
+exports[`KkbEpayClient _readFile() should resolve with file content 1`] = `
+"This file used in tests!
+Do not remove!
+"
+`;
+
+exports[`KkbEpayClient _sign() should resolve with signed data string 1`] = `"OOlFo1j3wWs4Km7OHfRtMQPvBI/63DgA6soBBPo9MjcscWM+SBhzMx6fYvofKRbPxMMBtijm+l2sYMjdrraEbw=="`;
