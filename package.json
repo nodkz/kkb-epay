@@ -27,11 +27,15 @@
     "babel-preset-env": "^1.1.8",
     "eslint": "^3.14.1",
     "eslint-config-airbnb-base": "^11.0.1",
+    "eslint-config-prettier": "^1.0.2",
     "eslint-plugin-flowtype": "^2.30.0",
     "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-prettier": "^2.0.0",
     "flow-bin": "^0.38.0",
     "jest": "^18.1.0",
-    "jest-babel": "^1.0.1"
+    "jest-babel": "^1.0.1",
+    "npm-run-all": "^4.0.1",
+    "prettier": "^0.15.0"
   },
   "dependencies": {
     "object-path": "^0.11.3",
@@ -39,14 +43,15 @@
   },
   "peerDependencies": {},
   "scripts": {
-    "build": "npm run build-cjs && npm run build-flow && npm run build-es",
-    "build-cjs": "rimraf lib && babel src --ignore __tests__,__mocks__ -d lib",
-    "build-es": "rimraf es && BABEL_ENV=es babel src --ignore __tests__,__mocks__ -d es",
-    "build-flow": "find ./src -name '*.js' -not -path '*/__*' | while read filepath; do cp $filepath `echo $filepath | sed 's/\\/src\\//\\/lib\\//g'`.flow; done",
+    "build": "npm-run-all build:*",
+    "build:cjs": "rimraf lib && babel src --ignore __tests__,__mocks__ -d lib",
+    "build:es": "rimraf es && BABEL_ENV=es babel src --ignore __tests__,__mocks__ -d es",
+    "build:flow": "find ./src -name '*.js' -not -path '*/__*' | while read filepath; do cp $filepath `echo $filepath | sed 's/\\/src\\//\\/lib\\//g'`.flow; done",
     "coverage": "jest --coverage",
     "lint": "eslint src test *.js",
     "test": "jest",
-    "test-watch": "jest --watch",
+    "test:watch": "jest --watch",
+    "watch": "npm run test:watch",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
   "jest": {
