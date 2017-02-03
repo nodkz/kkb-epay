@@ -11,7 +11,8 @@ export default function expressMiddleware(opts: ExpressMiddlewareOpts = {}) {
   const autoConfirm = !!opts.autoConfirm;
   const proceedRequest = isFunction(opts.proceedRequest) ? opts.proceedRequest : () => {};
 
-  return (req, res, next) => {
+  return (req: any, res: any, next: any) => {
+    console.log(autoConfirm, proceedRequest);
     next();
   };
 }

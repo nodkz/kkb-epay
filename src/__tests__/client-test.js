@@ -1,5 +1,8 @@
-import KkbEpayClient from '../kkbEpayClient.js'
+/* @flow */
+/* eslint-disable no-new */
+
 import path from 'path';
+import KkbEpayClient from '../kkbEpayClient';
 
 const config = {
   merchantId: '92061101',
@@ -12,6 +15,8 @@ const config = {
 };
 
 describe('KkbEpayClient', () => {
+  const client = new KkbEpayClient(config);
+
   describe('constructor()', () => {
     it('should throw if opt.merchantId not provided', () => {
       expect(() => {
@@ -19,7 +24,7 @@ describe('KkbEpayClient', () => {
           ...config,
           merchantId: undefined,
         });
-      }).toThrow(/should provide `merchantId`/);
+      }).toThrowError(/should provide `merchantId`/);
     });
 
     it('should throw if opt.merchantName not provided', () => {
@@ -28,7 +33,7 @@ describe('KkbEpayClient', () => {
           ...config,
           merchantName: undefined,
         });
-      }).toThrow(/should provide `merchantName`/);
+      }).toThrowError(/should provide `merchantName`/);
     });
 
     it('should throw if opt.merchantCertificateId not provided', () => {
@@ -37,7 +42,7 @@ describe('KkbEpayClient', () => {
           ...config,
           merchantCertificateId: undefined,
         });
-      }).toThrow(/should provide `merchantCertificateId`/);
+      }).toThrowError(/should provide `merchantCertificateId`/);
     });
 
     it('should throw if opt.certPrvPass not provided', () => {
@@ -46,7 +51,7 @@ describe('KkbEpayClient', () => {
           ...config,
           certPrvPass: undefined,
         });
-      }).toThrow(/should provide `certPrvPass`/);
+      }).toThrowError(/should provide `certPrvPass`/);
     });
 
     it('should throw if opt.certPrv not provided', () => {
@@ -55,7 +60,7 @@ describe('KkbEpayClient', () => {
           ...config,
           certPrv: undefined,
         });
-      }).toThrow(/should provide `certPrv`/);
+      }).toThrowError(/should provide `certPrv`/);
     });
 
     it('should throw if opt.certPub not provided', () => {
@@ -64,7 +69,7 @@ describe('KkbEpayClient', () => {
           ...config,
           certPub: undefined,
         });
-      }).toThrow(/should provide `certPub`/);
+      }).toThrowError(/should provide `certPub`/);
     });
 
     it('should throw if opt.kkbcaPub not provided', () => {
@@ -73,44 +78,40 @@ describe('KkbEpayClient', () => {
           ...config,
           kkbcaPub: undefined,
         });
-      }).toThrow(/should provide `kkbcaPub`/);
+      }).toThrowError(/should provide `kkbcaPub`/);
     });
   });
 
   describe('_readFile()', () => {
-    const client = new KkbEpayClient(config);
-
     it('should return Promise', () => {
-      const p = client._readFile();
+      const p = client._readFile('file');
       expect(p).toBeInstanceOf(Promise);
-      return p.catch(e => {});
+      return p.catch(() => {});
     });
 
     it('should reject if file is not provided', () => {
-      return client._readFile().catch((e) => {
+      // $FlowFixMe
+      return client._readFile().catch(e => {
         expect(e).toBeDefined();
       });
     });
 
     it('should resolve with file content', async () => {
-      const data = await client._readFile(
-        path.resolve(__dirname, '../__mocks__/readFileTest.txt')
-      );
+      const data = await client._readFile(path.resolve(__dirname, '../__mocks__/readFileTest.txt'));
       expect(data).toMatchSnapshot();
     });
   });
 
   describe('_sign()', () => {
-    const client = new KkbEpayClient(config);
-
     it('should return Promise', () => {
       const p = client._sign('test');
       expect(p).toBeInstanceOf(Promise);
-      return p.catch(e => {});
+      return p.catch(() => {});
     });
 
     it('should reject if provided empty data', () => {
-      return client._sign().catch((e) => {
+      // $FlowFixMe
+      return client._sign().catch(e => {
         expect(e.toString()).toMatch(/Data must be a string or a buffer/);
       });
     });
@@ -118,9 +119,9 @@ describe('KkbEpayClient', () => {
     it('should reject if provided wrong passphrase', () => {
       const client2 = new KkbEpayClient({
         ...config,
-        certPrvPass: 'wrongPassphrase'
+        certPrvPass: 'wrongPassphrase',
       });
-      return client2._sign('Test').catch((e) => {
+      return client2._sign('Test').catch(e => {
         expect(e).toBeDefined();
       });
     });
@@ -151,19 +152,20 @@ describe('KkbEpayClient', () => {
   });
 
   describe('_verify()', () => {
-    const client = new KkbEpayClient({
+    const clientSelfSigned = new KkbEpayClient({
       ...config,
       kkbcaPub: path.resolve(__dirname, '../__mocks__/data/cert.pub'),
     });
 
     it('should return Promise', () => {
-      const p = client._verify('test');
+      const p = clientSelfSigned._verify('test', 'sign');
       expect(p).toBeInstanceOf(Promise);
-      return p.catch(e => {});
+      return p.catch(() => {});
     });
 
     it('should reject if provided empty data', () => {
-      return client._verify().catch((e) => {
+      // $FlowFixMe
+      return clientSelfSigned._verify().catch(e => {
         expect(e.toString()).toMatch(/Data must be a string or a buffer/);
       });
     });
@@ -171,89 +173,184 @@ describe('KkbEpayClient', () => {
     it('should resolve with false if provided wrong sign', () => {
       const data = 'Test';
       const sign = 'wrongSign';
-      return client._verify('Test', sign).then((result) => {
+      return clientSelfSigned._verify(data, sign).then(result => {
         expect(result).toBeFalsy();
       });
     });
 
     it('should resolve with true if provided correct sign', async () => {
       const data = 'Test';
-      const sign = await client._sign(data);
-      await client._verify(data, sign).then((result) => {
+      const sign = await clientSelfSigned._sign(data);
+      await clientSelfSigned._verify(data, sign).then(result => {
         expect(result).toBeTruthy();
       });
     });
   });
 
   describe('_parseXml()', () => {
-    const client = new KkbEpayClient(config);
-
     it('should return Promise', () => {
       const p = client._parseXml('test');
       expect(p).toBeInstanceOf(Promise);
-      return p.catch(e => {});
+      return p.catch(() => {});
     });
 
     it('should reject with error on empty xmlString', () => {
-      return client._parseXml().catch((e) => {
+      // $FlowFixMe
+      return client._parseXml().catch(e => {
         expect(e.message).toMatch(/must be non-empty string/);
       });
     });
 
     it('should resolve with js object', async () => {
-      const res = await client._parseXml(
-        '<document><bank name="Kazkom"></bank></document>'
-      );
+      const res = await client._parseXml('<document><bank name="Kazkom"></bank></document>');
       expect(res).toEqual({
         document: {
-          bank: [
-            { $: { name: 'Kazkom' } },
-          ]
-        }
+          bank: [{ $: { name: 'Kazkom' } }],
+        },
       });
     });
   });
 
   describe('_parseResponse()', () => {
-    const client = new KkbEpayClient(config);
-
     it('should return Promise', () => {
-      const p = client._parseResponse('test');
+      const p = client._parseBankResponse('test');
       expect(p).toBeInstanceOf(Promise);
-      return p.catch(e => {});
+      return p.catch(() => {});
     });
 
     it('should reject with error on empty argument', () => {
-      return client._parseResponse().catch((e) => {
+      // $FlowFixMe
+      return client._parseBankResponse().catch(e => {
         expect(e).toBeDefined();
       });
     });
 
     it('should reject with error on empty <bank_sign>', () => {
-      return client._parseResponse('<document><bank name="Kazkom"></bank></document>')
-        .catch((e) => {
+      return client
+        ._parseBankResponse('<document><bank name="Kazkom"></bank></document>')
+        .catch(e => {
           expect(e.message).toMatch(/should have non-empty `bank_sign`/);
         });
     });
 
     it('should reject with error invalid <bank_sign>', async () => {
       const xml = await client._readFile(
-        path.resolve(__dirname, '../__mocks__/testResponseInvalidSign.txt')
+        path.resolve(__dirname, '../__mocks__/testResponseInvalidSign.txt'),
       );
 
       try {
-        await client._parseResponse(xml.trim());
+        await client._parseBankResponse(xml.trim());
       } catch (e) {
         expect(e.message).toMatch(/has unverified\/wrong `bank_sign`/);
       }
     });
 
     it('should resolve with <bank> data', async () => {
-      const xml = await client._readFile(
-        path.resolve(__dirname, '../__mocks__/testResponse.txt'),
-      );
-      const result = await client._parseResponse(xml.trim());
+      const xml = await client._readFile(path.resolve(__dirname, '../__mocks__/testResponse.txt'));
+      const result = await client._parseBankResponse(xml.trim());
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('_beautifyResponse()', () => {
+    it('should remove arrays', () => {
+      expect(client._beautifyResponse([{ body: 1 }])).toEqual({ body: 1 });
+
+      expect(client._beautifyResponse([{ body: 1 }, { body: 2 }])).toEqual({
+        body: 1,
+        '1': { body: 2 },
+      });
+    });
+
+    it('should expand args under $ key', () => {
+      expect(client._beautifyResponse({ $: { arg1: 1, arg2: 2 } })).toEqual({
+        arg1: 1,
+        arg2: 2,
+      });
+    });
+
+    it('should return regular keys', () => {
+      expect(client._beautifyResponse({ key1: 1, key2: 2 })).toEqual({
+        key1: 1,
+        key2: 2,
+      });
+    });
+
+    it('should return combined keys and args', () => {
+      expect(client._beautifyResponse({ key1: 1, key2: 2, $: { arg1: 1, arg2: 2 } })).toEqual({
+        key1: 1,
+        key2: 2,
+        arg1: 1,
+        arg2: 2,
+      });
+    });
+
+    it('should remove arrays in regular keys', () => {
+      expect(client._beautifyResponse({ key1: [{ subKey1: 11, subKey2: 12 }], key2: 2 })).toEqual({
+        key1: {
+          subKey1: 11,
+          subKey2: 12,
+        },
+        key2: 2,
+      });
+    });
+
+    it('should match success response to snapshot', async () => {
+      const xml = await client._readFile(path.resolve(__dirname, '../__mocks__/testResponse.txt'));
+      const result = await client._parseBankResponse(xml.trim());
+      expect(client._beautifyResponse(result)).toEqual({
+        name: 'Kazkommertsbank JSC',
+        customer: {
+          name: 'test',
+          mail: 'SeFrolov@kkb.kz',
+          phone: '+333333333',
+          merchant: {
+            cert_id: '00c183d70b',
+            name: 'New Demo Shop',
+            order: {
+              amount: '10',
+              currency: '398',
+              department: { amount: '10', merchant_id: '92061103' },
+              order_id: '0202171211',
+            },
+          },
+          merchant_sign: { type: 'RSA' },
+        },
+        customer_sign: { type: 'RSA' },
+        results: {
+          timestamp: '2017-02-02 17:13:03',
+          payment: {
+            merchant_id: '92061103',
+            card: '440564-XX-XXXX-6150',
+            amount: '10',
+            reference: '170202171303',
+            approval_code: '171303',
+            response_code: '00',
+            Secure: 'No',
+            card_bin: '',
+            c_hash: '13988BBF7C6649F799F36A4808490A3E',
+          },
+        },
+      });
+    });
+
+    it('should match success response to snapshot', async () => {
+      const xml = await client._readFile(
+        path.resolve(__dirname, '../__mocks__/testResponseError.txt'),
+      );
+      const result = await client._parseXml(xml);
+      expect(client._beautifyResponse(result)).toEqual({
+        response: {
+          error: {
+            _: 'Error Message',
+            code: '00',
+            time: '2006-11-22 12:20:30',
+            type: 'system | auth',
+          },
+          order_id: '123456',
+          session: { id: '1234654656545' },
+        },
+      });
     });
   });
 });
