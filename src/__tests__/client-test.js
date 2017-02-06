@@ -3,25 +3,20 @@
 
 import path from 'path';
 import KkbEpayClient from '../kkbEpayClient';
-
-const config = {
-  merchantId: '92061101',
-  merchantName: 'Test shop',
-  merchantCertificateId: '00C182B189',
-  certPrvPass: 'nissan',
-  certPrv: path.resolve(__dirname, '../__mocks__/data/cert.prv'),
-  certPub: path.resolve(__dirname, '../__mocks__/data/cert.pub'),
-  kkbcaPub: path.resolve(__dirname, '../__mocks__/data/kkbca_test.pub'),
-};
+import testConfig from '../../test_keys/config';
 
 describe('KkbEpayClient', () => {
-  const client = new KkbEpayClient(config);
+  const client = new KkbEpayClient(testConfig);
+  const clientSelfSigned = new KkbEpayClient({
+    ...testConfig,
+    kkbcaPub: testConfig.certPub,
+  });
 
   describe('constructor()', () => {
     it('should throw if opt.merchantId not provided', () => {
       expect(() => {
         new KkbEpayClient({
-          ...config,
+          ...testConfig,
           merchantId: undefined,
         });
       }).toThrowError(/should provide `merchantId`/);
@@ -30,7 +25,7 @@ describe('KkbEpayClient', () => {
     it('should throw if opt.merchantName not provided', () => {
       expect(() => {
         new KkbEpayClient({
-          ...config,
+          ...testConfig,
           merchantName: undefined,
         });
       }).toThrowError(/should provide `merchantName`/);
@@ -39,7 +34,7 @@ describe('KkbEpayClient', () => {
     it('should throw if opt.merchantCertificateId not provided', () => {
       expect(() => {
         new KkbEpayClient({
-          ...config,
+          ...testConfig,
           merchantCertificateId: undefined,
         });
       }).toThrowError(/should provide `merchantCertificateId`/);
@@ -48,7 +43,7 @@ describe('KkbEpayClient', () => {
     it('should throw if opt.certPrvPass not provided', () => {
       expect(() => {
         new KkbEpayClient({
-          ...config,
+          ...testConfig,
           certPrvPass: undefined,
         });
       }).toThrowError(/should provide `certPrvPass`/);
@@ -57,7 +52,7 @@ describe('KkbEpayClient', () => {
     it('should throw if opt.certPrv not provided', () => {
       expect(() => {
         new KkbEpayClient({
-          ...config,
+          ...testConfig,
           certPrv: undefined,
         });
       }).toThrowError(/should provide `certPrv`/);
@@ -66,7 +61,7 @@ describe('KkbEpayClient', () => {
     it('should throw if opt.certPub not provided', () => {
       expect(() => {
         new KkbEpayClient({
-          ...config,
+          ...testConfig,
           certPub: undefined,
         });
       }).toThrowError(/should provide `certPub`/);
@@ -75,7 +70,7 @@ describe('KkbEpayClient', () => {
     it('should throw if opt.kkbcaPub not provided', () => {
       expect(() => {
         new KkbEpayClient({
-          ...config,
+          ...testConfig,
           kkbcaPub: undefined,
         });
       }).toThrowError(/should provide `kkbcaPub`/);
@@ -118,7 +113,7 @@ describe('KkbEpayClient', () => {
 
     it('should reject if provided wrong passphrase', () => {
       const client2 = new KkbEpayClient({
-        ...config,
+        ...testConfig,
         certPrvPass: 'wrongPassphrase',
       });
       return client2._sign('Test').catch(e => {
@@ -133,11 +128,11 @@ describe('KkbEpayClient', () => {
 
     it('should invert sign if opts.invertSign = true', async () => {
       const client2 = new KkbEpayClient({
-        ...config,
+        ...testConfig,
         invertSign: false,
       });
       const client3 = new KkbEpayClient({
-        ...config,
+        ...testConfig,
         invertSign: true,
       });
       const data = 'Test';
@@ -152,11 +147,6 @@ describe('KkbEpayClient', () => {
   });
 
   describe('_verify()', () => {
-    const clientSelfSigned = new KkbEpayClient({
-      ...config,
-      kkbcaPub: path.resolve(__dirname, '../__mocks__/data/cert.pub'),
-    });
-
     it('should return Promise', () => {
       const p = clientSelfSigned._verify('test', 'sign');
       expect(p).toBeInstanceOf(Promise);
@@ -295,7 +285,7 @@ describe('KkbEpayClient', () => {
       });
     });
 
-    it('should match success response to snapshot', async () => {
+    it('should match success response', async () => {
       const xml = await client._readFile(path.resolve(__dirname, '../__mocks__/testResponse.txt'));
       const result = await client._parseBankResponse(xml.trim());
       expect(client._beautifyResponse(result)).toEqual({
@@ -334,7 +324,7 @@ describe('KkbEpayClient', () => {
       });
     });
 
-    it('should match success response to snapshot', async () => {
+    it('should match error response', async () => {
       const xml = await client._readFile(
         path.resolve(__dirname, '../__mocks__/testResponseError.txt'),
       );
@@ -351,6 +341,60 @@ describe('KkbEpayClient', () => {
           session: { id: '1234654656545' },
         },
       });
+    });
+  });
+
+  describe('_createXml()', () => {
+    it('should return string', () => {
+      const str = client._createXml('root', { a: 1, b: 2 });
+      expect(str).toEqual('<root><a>1</a><b>2</b></root>');
+    });
+
+    it('should accept args', () => {
+      const str = client._createXml('root', { $: { a: 1, b: 2 }, t: 3 });
+      expect(str).toEqual('<root a="1" b="2"><t>3</t></root>');
+    });
+  });
+
+  describe('_createOrderXML()', () => {
+    it('should create signed doc', async () => {
+      const signedOrder = await client._createOrderXML('000333', 500, 398);
+      expect(signedOrder).toMatchSnapshot();
+
+      // $FlowFixMe
+      const marchantData = signedOrder.match(/(<merchant.*<\/merchant>)/i)[1];
+      // $FlowFixMe
+      const marchantSign = signedOrder.match(/<merchant_sign.*>(.+)<\/merchant_sign>/i)[1];
+      expect(marchantData).toMatchSnapshot();
+      expect(marchantSign).toMatchSnapshot();
+      expect(await clientSelfSigned._verify(marchantData, marchantSign)).toBeTruthy();
+    });
+  });
+
+  describe('proceedOrder()', () => {
+    it('should create signed proceed command', async () => {
+      const signedCmd = await client.proceedOrder(
+        'complete',
+        'referenceNumber',
+        'approvalCode',
+        'orderId',
+        500,
+        398,
+      );
+      expect(signedCmd).toMatchSnapshot();
+    });
+
+    it('should has `reason` tag for reverse command', async () => {
+      const signedCmd = await client.proceedOrder(
+        'reverse',
+        'referenceNumber',
+        'approvalCode',
+        'orderId',
+        500,
+        398,
+      );
+      expect(signedCmd).toContain('<reason>Return payment</reason>');
+      expect(signedCmd).toMatchSnapshot();
     });
   });
 });

@@ -2,7 +2,8 @@
   "name": "kkb-epay",
   "version": "0.0.0-semantically-released",
   "description": "Visa/MasteCard payment gateway via EPAY processing (Qazkom bank, Kazakhstan).",
-  "main": "index.js",
+  "main": "lib/index.js",
+  "jsnext:main": "es/index.js",
   "repository": "https://github.com/nodkz/kkb-epay",
   "author": "Nodkz (pavel.chertorogov@gmail.com)",
   "keywords": [
@@ -35,7 +36,8 @@
     "jest": "^18.1.0",
     "jest-babel": "^1.0.1",
     "npm-run-all": "^4.0.1",
-    "prettier": "^0.15.0"
+    "prettier": "^0.15.0",
+    "rimraf": "^2.5.4"
   },
   "dependencies": {
     "object-path": "^0.11.3",
