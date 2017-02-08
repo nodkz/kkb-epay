@@ -301,9 +301,13 @@ export default class KkbEpayClient {
       );
     }
 
+    const signedOrder = await this._createOrderXML(opts.orderId, opts.amount, opts.currency);
+    const signedOrderBuffer = new Buffer(signedOrder);
+
     return {
       email: opts.email || '',
-      Signed_Order_B64: await this._createOrderXML(opts.orderId, opts.amount, opts.currency),
+      Signed_Order: signedOrder, // FOR DEBUG PURPOSES
+      Signed_Order_B64: signedOrderBuffer.toString('base64'),
       BackLink: opts.successUrl,
       FailureBackLink: opts.failureUrl,
       PostLink: opts.callbackUrl,
@@ -312,8 +316,37 @@ export default class KkbEpayClient {
   }
 
   async processResponseCreateOrder(xml: string): Promise<Object> {
-    const xmlObj = await this._parseBankResponse(xml);
-    return this._beautifyResponse(xmlObj);
+    try {
+      const xmlObj = await this._parseBankResponse(xml);
+      const res = this._beautifyResponse(xmlObj);
+
+      const responseCode = objectPath.get(res, 'results.payment.response_code');
+      if (responseCode !== '00') {
+        return Promise.reject(new Error(
+          `results.payment.response_code: ${responseCode} is not equal to 00`,
+        ));
+      }
+
+      // const merchantId = objectPath.get(res, 'results.payment.merchant_id');
+      // if (merchantId !== this.opts.merchantId) {
+      //   return Promise.reject(new Error(
+      //     `results.payment.merchant_id: ${merchantId} is not equal to your id in opts ${this.opts.merchantId}`
+      //   ));
+      // }
+
+      return {
+        timestamp: res.results.timestamp,
+        name: res.customer.name,
+        mail: res.customer.mail,
+        phone: res.customer.phone,
+        order_id: res.customer.merchant.order.order_id,
+        amount: res.customer.merchant.order.amount,
+        currency: res.customer.merchant.order.currency,
+        ...res.results.payment,
+      };
+    } catch (e) {
+      return Promise.reject(e);
+    }
   }
 
   /**
@@ -360,13 +393,17 @@ export default class KkbEpayClient {
   }
 
   async processResponseProceedOrder(xml: string): Promise<Object> {
-    const xmlObj = await this._parseBankResponse(xml);
-    const res = this._beautifyResponse(xmlObj);
+    try {
+      const xmlObj = await this._parseBankResponse(xml);
+      const res = this._beautifyResponse(xmlObj);
 
-    if (objectPath.get(res, 'bank.response.code') !== '00') {
-      return Promise.reject(res);
+      if (objectPath.get(res, 'bank.response.code') !== '00') {
+        return Promise.reject(new Error('Response.code is not equal to 00'));
+      }
+
+      return res;
+    } catch (e) {
+      return Promise.reject(e);
     }
-
-    return res;
   }
 }

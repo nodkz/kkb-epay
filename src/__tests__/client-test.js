@@ -107,7 +107,7 @@ describe('KkbEpayClient', () => {
     it('should reject if provided empty data', () => {
       // $FlowFixMe
       return client._sign().catch(e => {
-        expect(e.toString()).toMatch(/Data must be a string or a buffer/);
+        expect(e.message).toContain('Data must be a string or a buffer');
       });
     });
 
@@ -156,7 +156,7 @@ describe('KkbEpayClient', () => {
     it('should reject if provided empty data', () => {
       // $FlowFixMe
       return clientSelfSigned._verify().catch(e => {
-        expect(e.toString()).toMatch(/Data must be a string or a buffer/);
+        expect(e.message).toContain('Data must be a string or a buffer');
       });
     });
 
@@ -187,7 +187,7 @@ describe('KkbEpayClient', () => {
     it('should reject with error on empty xmlString', () => {
       // $FlowFixMe
       return client._parseXml().catch(e => {
-        expect(e.message).toMatch(/must be non-empty string/);
+        expect(e.message).toContain('must be non-empty string');
       });
     });
 
@@ -219,7 +219,7 @@ describe('KkbEpayClient', () => {
       return client
         ._parseBankResponse('<document><bank name="Kazkom"></bank></document>')
         .catch(e => {
-          expect(e.message).toMatch(/should have non-empty `bank_sign`/);
+          expect(e.message).toContain('should have non-empty `bank_sign`');
         });
     });
 
@@ -231,7 +231,7 @@ describe('KkbEpayClient', () => {
       try {
         await client._parseBankResponse(xml.trim());
       } catch (e) {
-        expect(e.message).toMatch(/has unverified\/wrong `bank_sign`/);
+        expect(e.message).toContain('has unverified/wrong `bank_sign`');
       }
     });
 
@@ -395,6 +395,57 @@ describe('KkbEpayClient', () => {
       );
       expect(signedCmd).toContain('<reason>Return payment</reason>');
       expect(signedCmd).toMatchSnapshot();
+    });
+  });
+
+  describe('processResponseCreateOrder()', () => {
+    it('should return Promise', () => {
+      const p = client.processResponseCreateOrder('<xml />');
+      expect(p).toBeInstanceOf(Promise);
+      return p.catch(() => {});
+    });
+
+    it('should resolve with parsed data on valid response', async () => {
+      const validResponseXml = await client._readFile(
+        path.resolve(__dirname, '../__mocks__/testResponse.txt'),
+      );
+
+      const res = await client.processResponseCreateOrder(validResponseXml);
+      expect(res).toEqual({
+        timestamp: '2017-02-02 17:13:03',
+        name: 'test',
+        mail: 'SeFrolov@kkb.kz',
+        phone: '+333333333',
+        order_id: '0202171211',
+        amount: '10',
+        currency: '398',
+        merchant_id: '92061103',
+        card: '440564-XX-XXXX-6150',
+        reference: '170202171303',
+        approval_code: '171303',
+        response_code: '00',
+        Secure: 'No',
+        card_bin: '',
+        c_hash: '13988BBF7C6649F799F36A4808490A3E',
+      });
+    });
+
+    it('should reject if error response from bank', () => {
+      return client
+        ._readFile(path.resolve(__dirname, '../__mocks__/testResponseError.txt'))
+        .then(xml => client.processResponseCreateOrder(xml))
+        .catch(e => {
+          expect(e.message).toContain('Response should have non-empty `bank_sign` property.');
+        });
+    });
+
+    it('should reject if invalid sign', () => {
+      return client
+        ._readFile(path.resolve(__dirname, '../__mocks__/testResponseInvalidSign.txt'))
+        .then(xml => client.processResponseCreateOrder(xml))
+        .catch(e => {
+          expect(e.message).toContain('Response has unverified/wrong `bank_sign`');
+        });
     });
   });
 });
