@@ -107,7 +107,7 @@ describe('KkbEpayClient', () => {
     it('should reject if provided empty data', () => {
       // $FlowFixMe
       return client._sign().catch(e => {
-        expect(e.message).toContain('Data must be a string or a buffer');
+        expect(e.message).toContain('a string or a buffer');
       });
     });
 
@@ -156,7 +156,7 @@ describe('KkbEpayClient', () => {
     it('should reject if provided empty data', () => {
       // $FlowFixMe
       return clientSelfSigned._verify().catch(e => {
-        expect(e.message).toContain('Data must be a string or a buffer');
+        expect(e.message).toContain('a string or a buffer');
       });
     });
 
