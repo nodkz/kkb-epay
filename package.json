@@ -1,6 +1,6 @@
 {
   "name": "kkb-epay",
-  "version": "0.0.0-semantically-released",
+  "version": "0.0.0-development",
   "description": "Visa/MasteCard payment gateway via EPAY processing (Qazkom bank, Kazakhstan).",
   "main": "lib/index.js",
   "jsnext:main": "es/index.js",
@@ -26,6 +26,7 @@
     "babel-plugin-transform-flow-strip-types": "^6.22.0",
     "babel-plugin-transform-object-rest-spread": "^6.22.0",
     "babel-preset-env": "^1.1.8",
+    "cz-conventional-changelog": "^1.2.0",
     "eslint": "^3.14.1",
     "eslint-config-airbnb-base": "^11.0.1",
     "eslint-config-prettier": "^1.0.2",
@@ -37,7 +38,8 @@
     "jest-babel": "^1.0.1",
     "npm-run-all": "^4.0.1",
     "prettier": "^0.15.0",
-    "rimraf": "^2.5.4"
+    "rimraf": "^2.5.4",
+    "semantic-release": "^6.3.2"
   },
   "dependencies": {
     "object-path": "^0.11.3",
@@ -60,5 +62,10 @@
     "testPathDirs": [
       "<rootDir>/src"
     ]
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
   }
 }
