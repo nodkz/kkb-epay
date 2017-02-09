@@ -306,7 +306,7 @@ export default class KkbEpayClient {
 
     return {
       email: opts.email || '',
-      Signed_Order: signedOrder, // FOR DEBUG PURPOSES
+      // Signed_Order: signedOrder, // FOR DEBUG PURPOSES
       Signed_Order_B64: signedOrderBuffer.toString('base64'),
       BackLink: opts.successUrl,
       FailureBackLink: opts.failureUrl,

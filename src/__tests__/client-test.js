@@ -371,30 +371,83 @@ describe('KkbEpayClient', () => {
     });
   });
 
-  describe('proceedOrder()', () => {
-    it('should create signed proceed command', async () => {
-      const signedCmd = await client.proceedOrder(
-        'complete',
-        'referenceNumber',
-        'approvalCode',
-        'orderId',
-        500,
-        398,
-      );
-      expect(signedCmd).toMatchSnapshot();
+  describe('createOrder()', () => {
+    const createOrderOpts = {
+      orderId: '000001',
+      amount: 500,
+      currency: 398,
+      callbackUrl: '/process',
+      successUrl: '/success',
+      failureUrl: '/failure',
+      email: '',
+      ln: 'rus',
+    };
+
+    it('should check orderId option', () => {
+      return client
+        .createOrder({
+          ...createOrderOpts,
+          orderId: '1',
+        })
+        .catch(e => {
+          expect(e.message).toContain('minLength 6 symbols and maxLength 15');
+        });
     });
 
-    it('should has `reason` tag for reverse command', async () => {
-      const signedCmd = await client.proceedOrder(
-        'reverse',
-        'referenceNumber',
-        'approvalCode',
-        'orderId',
-        500,
-        398,
-      );
-      expect(signedCmd).toContain('<reason>Return payment</reason>');
-      expect(signedCmd).toMatchSnapshot();
+    it('should check amount option', () => {
+      return client
+        .createOrder({
+          ...createOrderOpts,
+          amount: 0,
+        })
+        .catch(e => {
+          expect(e.message).toContain('`opts.amount` as positive number');
+        });
+    });
+
+    it('should check callbackUrl option', () => {
+      return client
+        .createOrder({
+          ...createOrderOpts,
+          callbackUrl: '',
+        })
+        .catch(e => {
+          expect(e.message).toContain('should provide `opts.callbackUrl`');
+        });
+    });
+
+    it('should check successUrl option', () => {
+      return client
+        .createOrder({
+          ...createOrderOpts,
+          successUrl: '',
+        })
+        .catch(e => {
+          expect(e.message).toContain('should provide `opts.successUrl`');
+        });
+    });
+
+    it('should check failureUrl option', () => {
+      return client
+        .createOrder({
+          ...createOrderOpts,
+          failureUrl: '',
+        })
+        .catch(e => {
+          expect(e.message).toContain('should provide `opts.failureUrl`');
+        });
+    });
+
+    it('should resolve valid result', async () => {
+      const res = await client.createOrder(createOrderOpts);
+      expect(res).toEqual({
+        BackLink: '/success',
+        FailureBackLink: '/failure',
+        Language: 'rus',
+        PostLink: '/process',
+        Signed_Order_B64: 'PGRvY3VtZW50PjxtZXJjaGFudCBjZXJ0X2lkPSIwMEMxODJCMTg5IiBuYW1lPSJUZXN0IHNob3AiPjxvcmRlciBvcmRlcl9pZD0iMDAwMDAxIiBhbW91bnQ9IjUwMCIgY3VycmVuY3k9IjM5OCI+PGRlcGFydG1lbnQgbWVyY2hhbnRfaWQ9IjkyMDYxMTAxIiBhbW91bnQ9IjUwMCIvPjwvb3JkZXI+PC9tZXJjaGFudD48bWVyY2hhbnRfc2lnbiB0eXBlPSJSU0EiPlBEcVZEMkpSNzhzUjI3SUxodjFvZk5GeFF5aVp0anQ3UHRFV2NORlBIRVZRODJGRlRCMVcyWmZuazhHcHdSMlF6dnRNb0U0QzlJbkVSTjlGWkRHMkR3PT08L21lcmNoYW50X3NpZ24+PC9kb2N1bWVudD4=',
+        email: '',
+      });
     });
   });
 
@@ -446,6 +499,33 @@ describe('KkbEpayClient', () => {
         .catch(e => {
           expect(e.message).toContain('Response has unverified/wrong `bank_sign`');
         });
+    });
+  });
+
+  describe('proceedOrder()', () => {
+    it('should create signed proceed command', async () => {
+      const signedCmd = await client.proceedOrder(
+        'complete',
+        'referenceNumber',
+        'approvalCode',
+        'orderId',
+        500,
+        398,
+      );
+      expect(signedCmd).toMatchSnapshot();
+    });
+
+    it('should has `reason` tag for reverse command', async () => {
+      const signedCmd = await client.proceedOrder(
+        'reverse',
+        'referenceNumber',
+        'approvalCode',
+        'orderId',
+        500,
+        398,
+      );
+      expect(signedCmd).toContain('<reason>Return payment</reason>');
+      expect(signedCmd).toMatchSnapshot();
     });
   });
 });
