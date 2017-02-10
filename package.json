@@ -42,6 +42,7 @@
     "semantic-release": "^6.3.2"
   },
   "dependencies": {
+    "node-fetch": "^1.6.3",
     "object-path": "^0.11.3",
     "xml2js": "^0.4.17"
   },

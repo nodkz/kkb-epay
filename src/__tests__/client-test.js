@@ -225,7 +225,7 @@ describe('KkbEpayClient', () => {
 
     it('should reject with error invalid <bank_sign>', async () => {
       const xml = await client._readFile(
-        path.resolve(__dirname, '../__mocks__/testResponseInvalidSign.txt'),
+        path.resolve(__dirname, '../__mocks__/createOrderResponseInvalidSign.txt'),
       );
 
       try {
@@ -236,7 +236,9 @@ describe('KkbEpayClient', () => {
     });
 
     it('should resolve with <bank> data', async () => {
-      const xml = await client._readFile(path.resolve(__dirname, '../__mocks__/testResponse.txt'));
+      const xml = await client._readFile(
+        path.resolve(__dirname, '../__mocks__/createOrderResponse.txt'),
+      );
       const result = await client._parseBankResponse(xml.trim());
       expect(result).toBeDefined();
     });
@@ -286,7 +288,9 @@ describe('KkbEpayClient', () => {
     });
 
     it('should match success response', async () => {
-      const xml = await client._readFile(path.resolve(__dirname, '../__mocks__/testResponse.txt'));
+      const xml = await client._readFile(
+        path.resolve(__dirname, '../__mocks__/createOrderResponse.txt'),
+      );
       const result = await client._parseBankResponse(xml.trim());
       expect(client._beautifyResponse(result)).toEqual({
         name: 'Kazkommertsbank JSC',
@@ -326,7 +330,7 @@ describe('KkbEpayClient', () => {
 
     it('should match error response', async () => {
       const xml = await client._readFile(
-        path.resolve(__dirname, '../__mocks__/testResponseError.txt'),
+        path.resolve(__dirname, '../__mocks__/createOrderResponseError.txt'),
       );
       const result = await client._parseXml(xml);
       expect(client._beautifyResponse(result)).toEqual({
@@ -460,7 +464,7 @@ describe('KkbEpayClient', () => {
 
     it('should resolve with parsed data on valid response', async () => {
       const validResponseXml = await client._readFile(
-        path.resolve(__dirname, '../__mocks__/testResponse.txt'),
+        path.resolve(__dirname, '../__mocks__/createOrderResponse.txt'),
       );
 
       const res = await client.processResponseCreateOrder(validResponseXml);
@@ -469,14 +473,14 @@ describe('KkbEpayClient', () => {
         name: 'test',
         mail: 'SeFrolov@kkb.kz',
         phone: '+333333333',
-        order_id: '0202171211',
+        orderId: '0202171211',
         amount: '10',
         currency: '398',
-        merchant_id: '92061103',
+        merchantId: '92061103',
         card: '440564-XX-XXXX-6150',
         reference: '170202171303',
-        approval_code: '171303',
-        response_code: '00',
+        approvalCode: '171303',
+        responseCode: '00',
         Secure: 'No',
         card_bin: '',
         c_hash: '13988BBF7C6649F799F36A4808490A3E',
@@ -485,7 +489,7 @@ describe('KkbEpayClient', () => {
 
     it('should reject if error response from bank', () => {
       return client
-        ._readFile(path.resolve(__dirname, '../__mocks__/testResponseError.txt'))
+        ._readFile(path.resolve(__dirname, '../__mocks__/createOrderResponseError.txt'))
         .then(xml => client.processResponseCreateOrder(xml))
         .catch(e => {
           expect(e.message).toContain('Response should have non-empty `bank_sign` property.');
@@ -494,7 +498,7 @@ describe('KkbEpayClient', () => {
 
     it('should reject if invalid sign', () => {
       return client
-        ._readFile(path.resolve(__dirname, '../__mocks__/testResponseInvalidSign.txt'))
+        ._readFile(path.resolve(__dirname, '../__mocks__/createOrderResponseInvalidSign.txt'))
         .then(xml => client.processResponseCreateOrder(xml))
         .catch(e => {
           expect(e.message).toContain('Response has unverified/wrong `bank_sign`');
@@ -502,30 +506,123 @@ describe('KkbEpayClient', () => {
     });
   });
 
-  describe('proceedOrder()', () => {
+  describe('_changePaymentXml()', () => {
     it('should create signed proceed command', async () => {
-      const signedCmd = await client.proceedOrder(
-        'complete',
-        'referenceNumber',
-        'approvalCode',
-        'orderId',
-        500,
-        398,
-      );
+      const signedCmd = await client._changePaymentXml({
+        cmd: 'complete',
+        reference: 'referenceNumber',
+        approvalCode: 'approvalCode',
+        orderId: 'orderId',
+        amount: 500,
+        currency: 398,
+      });
       expect(signedCmd).toMatchSnapshot();
     });
 
     it('should has `reason` tag for reverse command', async () => {
-      const signedCmd = await client.proceedOrder(
-        'reverse',
-        'referenceNumber',
-        'approvalCode',
-        'orderId',
-        500,
-        398,
-      );
+      const signedCmd = await client._changePaymentXml({
+        cmd: 'reverse',
+        reference: 'referenceNumber',
+        approvalCode: 'approvalCode',
+        orderId: 'orderId',
+        amount: 500,
+        currency: 398,
+      });
       expect(signedCmd).toContain('<reason>Return payment</reason>');
       expect(signedCmd).toMatchSnapshot();
+    });
+  });
+
+  describe('_processResponseChangePayment()', () => {
+    it('should return Promise', () => {
+      const p = client._processResponseChangePayment('<xml />');
+      expect(p).toBeInstanceOf(Promise);
+      return p.catch(() => {});
+    });
+
+    it('should resolve with parsed data on valid response', async () => {
+      const validResponseXml = await client._readFile(
+        path.resolve(__dirname, '../__mocks__/changePaymentResponse.txt'),
+      );
+
+      const res = await client._processResponseChangePayment(validResponseXml);
+      expect(res).toEqual({
+        SessionID: 'A1A94337B1F3336277ABD4D289BAD12A',
+        amount: '10',
+        approvalCode: '171303',
+        cmd: 'complete',
+        code: '00',
+        currency: '398',
+        message: 'Approved',
+        orderId: '0202171211',
+        reference: '170202171303',
+      });
+    });
+  });
+
+  describe('changePayment()', () => {
+    const changePaymentOpts = {
+      cmd: 'refund',
+      reference: '170202171303',
+      approvalCode: '171303',
+      orderId: '0202171211',
+      amount: 10,
+      currency: 398,
+    };
+
+    it('should return Promise', () => {
+      // $FlowFixMe
+      const p = client.changePayment({});
+      expect(p).toBeInstanceOf(Promise);
+      return p.catch(() => {});
+    });
+
+    it('should reject with error on empty opts', () => {
+      // $FlowFixMe
+      return client.changePayment({}).catch(e => {
+        expect(e.message).toContain('provide all required options');
+      });
+    });
+
+    it('should reject with error on wrong cmd', () => {
+      return client
+        // $FlowFixMe
+        .changePayment({
+          ...changePaymentOpts,
+          cmd: 'non-existed',
+        })
+        .catch(e => {
+          expect(e.message).toContain('reverse, complete, refund');
+        });
+    });
+
+    // this test makes request to Kazkom server
+    // just an example
+    // may not work, if kazkom clear data or change order
+    it.skip('should return result', async () => {
+      const res = await client.changePayment(changePaymentOpts);
+      expect(res).toMatchObject({
+        amount: '10',
+        approvalCode: '171303',
+        cmd: 'complete',
+        code: '00',
+        currency: '398',
+        orderId: '0202171211',
+        reference: '170202171303',
+      });
+    });
+
+    it('should reject with wrong opts', () => {
+      return client
+        .changePayment({
+          ...changePaymentOpts,
+          cmd: 'complete',
+          reference: '000000000',
+          approvalCode: '000000',
+        })
+        .catch(e => {
+          expect(e.message).toBeDefined();
+        });
     });
   });
 });

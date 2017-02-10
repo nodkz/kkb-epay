@@ -5,6 +5,8 @@ import fs from 'fs';
 import crypto from 'crypto';
 import xml2js from 'xml2js';
 import objectPath from 'object-path';
+// $FlowFixMe
+import fetch from 'node-fetch';
 
 type absolutePathStringT = string;
 
@@ -20,8 +22,27 @@ export type KkbEpayClientOptsT = {
   serverEndpoint: string,
 };
 
-export type ProceedOrderCmdT = 'reverse' | 'complete' | 'refund';
 export type CurrencyISO4217 = 398 | 840 | 643; // 398 - KZT, 840 - USD, 643 - RUB;
+
+export type CreateOrderOptsT = {
+  orderId: string,
+  amount: number,
+  currency: CurrencyISO4217,
+  email: string,
+  callbackUrl: string,
+  successUrl: string,
+  failureUrl: string,
+  ln: 'rus' | 'eng' | 'kaz',
+};
+
+export type ChangePaymentOptsT = {
+  cmd: 'reverse' | 'complete' | 'refund',
+  reference: string,
+  approvalCode: string,
+  orderId: string,
+  amount: number,
+  currency: CurrencyISO4217,
+};
 
 export default class KkbEpayClient {
   opts: KkbEpayClientOptsT;
@@ -248,22 +269,7 @@ export default class KkbEpayClient {
     return `${this.opts.serverEndpoint}/jsp/process/logon.jsp`;
   }
 
-  getProceedOrderUrl() {
-    return `${this.opts.serverEndpoint}/jsp/remote/control.jsp`;
-  }
-
-  async createOrder(
-    opts: {
-      orderId: string,
-      amount: number,
-      currency: CurrencyISO4217,
-      email: string,
-      callbackUrl: string,
-      successUrl: string,
-      failureUrl: string,
-      ln: 'rus' | 'eng' | 'kaz',
-    },
-  ): Promise<Object> {
+  async createOrder(opts: CreateOrderOptsT): Promise<Object> {
     if (!opts) {
       throw new Error('You provide empty options');
     }
@@ -320,10 +326,10 @@ export default class KkbEpayClient {
       const xmlObj = await this._parseBankResponse(xml);
       const res = this._beautifyResponse(xmlObj);
 
-      const responseCode = objectPath.get(res, 'results.payment.response_code');
-      if (responseCode !== '00') {
+      const code = objectPath.get(res, 'results.payment.response_code');
+      if (code !== '00') {
         return Promise.reject(new Error(
-          `results.payment.response_code: ${responseCode} is not equal to 00`,
+          `results.payment.response_code: ${code} is not equal to 00`,
         ));
       }
 
@@ -334,55 +340,57 @@ export default class KkbEpayClient {
       //   ));
       // }
 
+      const {
+        merchant_id: merchantId,
+        approval_code: approvalCode,
+        response_code: responseCode,
+        ...restPayment
+      } = res.results.payment;
+
       return {
         timestamp: res.results.timestamp,
         name: res.customer.name,
         mail: res.customer.mail,
         phone: res.customer.phone,
-        order_id: res.customer.merchant.order.order_id,
+        orderId: res.customer.merchant.order.order_id,
         amount: res.customer.merchant.order.amount,
         currency: res.customer.merchant.order.currency,
-        ...res.results.payment,
+        merchantId,
+        approvalCode,
+        responseCode,
+        ...restPayment,
       };
     } catch (e) {
       return Promise.reject(e);
     }
   }
 
-  /**
-  * cmd 'reverse' - return blocked amount back to customer
-  *     'complete' - confirm payment and transfer blocket amount to merchant
-  *     'refund' - return confirmed payment back
-  */
-  async proceedOrder(
-    cmd: ProceedOrderCmdT,
-    reference: string,
-    approvalCode: string,
-    orderId: string,
-    amount: number,
-    currency: CurrencyISO4217,
-  ): Promise<string> {
+  getChangePaymentUrl() {
+    return `${this.opts.serverEndpoint}/jsp/remote/control.jsp`;
+  }
+
+  async _changePaymentXml(opts: ChangePaymentOptsT): Promise<string> {
     const merchantObj = {
       $: {
-        merchant_id: this.opts.merchantId,
+        id: this.opts.merchantId,
       },
       command: {
         $: {
-          type: cmd,
+          type: opts.cmd,
         },
       },
       payment: {
         $: {
-          reference,
-          approval_code: approvalCode,
-          orderid: orderId,
-          amount,
-          currency_code: currency,
+          reference: opts.reference,
+          approval_code: opts.approvalCode,
+          orderid: opts.orderId,
+          amount: opts.amount,
+          currency_code: opts.currency,
         },
       },
     };
 
-    if (cmd === 'reverse') {
+    if (opts.cmd === 'reverse' || opts.cmd === 'refund') {
       // $FlowFixMe
       merchantObj.reason = 'Return payment';
     }
@@ -392,18 +400,53 @@ export default class KkbEpayClient {
     return `<document>${merchantTag}<merchant_sign type="RSA" cert_id="${this.opts.merchantCertificateId}">${merchantSign}</merchant_sign></document>`;
   }
 
-  async processResponseProceedOrder(xml: string): Promise<Object> {
+  async _processResponseChangePayment(xml: string): Promise<Object> {
     try {
       const xmlObj = await this._parseBankResponse(xml);
       const res = this._beautifyResponse(xmlObj);
 
-      if (objectPath.get(res, 'bank.response.code') !== '00') {
+      if (objectPath.get(res, 'response.code') !== '00') {
         return Promise.reject(new Error('Response.code is not equal to 00'));
       }
 
-      return res;
+      return {
+        cmd: res.merchant.command.type,
+        reference: res.merchant.payment.reference,
+        approvalCode: res.merchant.payment.approval_code,
+        orderId: res.merchant.payment.orderid,
+        amount: res.merchant.payment.amount,
+        currency: res.merchant.payment.currency_code,
+        ...res.response, // code="00" message="Approved" remaining_amount="50"
+      };
     } catch (e) {
       return Promise.reject(e);
     }
+  }
+
+  async changePayment(opts: ChangePaymentOptsT): Promise<Object> {
+    if (
+      !opts ||
+        !opts.cmd ||
+        !opts.reference ||
+        !opts.approvalCode ||
+        !opts.orderId ||
+        !opts.amount ||
+        !opts.currency
+    ) {
+      throw new Error(
+        'You should provide all required options: { cmd, reference, approvalCode, orderId, amount, currency}',
+      );
+    }
+
+    if (!['reverse', 'complete', 'refund'].includes(opts.cmd)) {
+      throw new Error('Allowed `opts.cmd` are: reverse, complete, refund.');
+    }
+
+    const xml = await this._changePaymentXml(opts);
+    const resXml = await fetch(
+      `${this.getChangePaymentUrl()}?${encodeURIComponent(xml)}`,
+    ).then(res => res.text());
+
+    return this._processResponseChangePayment(resXml);
   }
 }
