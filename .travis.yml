@@ -7,10 +7,9 @@ cache:
 notifications:
   email: true
 node_js:
-  - "7"
-  - "6"
-  - "5"
-  - "4"
+  - '8'
+  - '6'
+  - '4'
 script:
   - yarn run test
   - yarn run build
