@@ -436,7 +436,7 @@ export default class KkbEpayClient {
       );
     }
 
-    if (!['reverse', 'complete', 'refund'].includes(opts.cmd)) {
+    if (['reverse', 'complete', 'refund'].indexOf(opts.cmd) === -1) {
       throw new Error('Allowed `opts.cmd` are: reverse, complete, refund.');
     }
 
