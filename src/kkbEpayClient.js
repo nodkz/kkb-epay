@@ -5,7 +5,6 @@ import fs from 'fs';
 import crypto from 'crypto';
 import xml2js from 'xml2js';
 import objectPath from 'object-path';
-// $FlowFixMe
 import fetch from 'node-fetch';
 
 type absolutePathStringT = string;
@@ -51,52 +50,50 @@ export default class KkbEpayClient {
     if (!opts.merchantId) {
       throw new Error(
         'You should provide `merchantId` option (string). ' +
-          'See provided by Qazkom variable MERCHANT_ID in `config.txt`',
+          'See provided by Qazkom variable MERCHANT_ID in `config.txt`'
       );
     }
     if (!opts.merchantName) {
       throw new Error(
         'You should provide `merchantName` option (string). ' +
-          'See provided by Qazkom variable MERCHANT_NAME in `config.txt`',
+          'See provided by Qazkom variable MERCHANT_NAME in `config.txt`'
       );
     }
     if (!opts.merchantCertificateId) {
       throw new Error(
         'You should provide `merchantCertificateId` option (string). ' +
-          'See provided by Qazkom variable MERCHANT_CERTIFICATE_ID in `config.txt`',
+          'See provided by Qazkom variable MERCHANT_CERTIFICATE_ID in `config.txt`'
       );
     }
     if (!opts.certPrvPass) {
       throw new Error(
         'You should provide `certPrvPass` option (string). ' +
-          'See provided by Qazkom variable PRIVATE_KEY_PASS in `config.txt`',
+          'See provided by Qazkom variable PRIVATE_KEY_PASS in `config.txt`'
       );
     }
     if (!opts.certPrv) {
       throw new Error(
         'You should provide `certPrv` option (absolute path). ' +
-          'This file provided by Qazkom and has name `cert.prv`',
+          'This file provided by Qazkom and has name `cert.prv`'
       );
     }
     if (!opts.certPub) {
       throw new Error(
         'You should provide `certPub` option (absolute path). ' +
-          'This file provided by Qazkom and has name `cert.pub`',
+          'This file provided by Qazkom and has name `cert.pub`'
       );
     }
     if (!opts.kkbcaPub) {
       throw new Error(
         'You should provide `kkbcaPub` option (absolute path). ' +
-          'This file provided by Qazkom and has name `kkbca.pem` or `kkbca.pub`',
+          'This file provided by Qazkom and has name `kkbca.pem` or `kkbca.pub`'
       );
     }
 
     this.opts = {
       ...opts,
-      invertSign: (
-        // true by default
-        opts.invertSign !== false
-      ),
+      // true by default
+      invertSign: opts.invertSign !== false,
       serverEndpoint: opts.serverEndpoint || 'https://epay.kkb.kz/',
     };
   }
@@ -201,7 +198,7 @@ export default class KkbEpayClient {
       throw new Error(
         'Response has unverified/wrong `bank_sign`. ' +
           'It may be unauthorized request. ' +
-          'Or was provided wrong bank public key in `opts.kkbcaPub` property.',
+          'Or was provided wrong bank public key in `opts.kkbcaPub` property.'
       );
     }
 
@@ -234,7 +231,7 @@ export default class KkbEpayClient {
   async _createOrderXML(
     orderId: string,
     amount: number,
-    currency: CurrencyISO4217 = 398,
+    currency: CurrencyISO4217 = 398
   ): Promise<string> {
     const merchantObj = {
       $: {
@@ -276,12 +273,12 @@ export default class KkbEpayClient {
 
     if (
       !opts.orderId ||
-        typeof opts.orderId !== 'string' ||
-        opts.orderId.length < 6 ||
-        opts.orderId.length > 15
+      typeof opts.orderId !== 'string' ||
+      opts.orderId.length < 6 ||
+      opts.orderId.length > 15
     ) {
       throw new Error(
-        'You should provide `opts.orderId` as string with minLength 6 symbols and maxLength 15.',
+        'You should provide `opts.orderId` as string with minLength 6 symbols and maxLength 15.'
       );
     }
 
@@ -291,19 +288,19 @@ export default class KkbEpayClient {
 
     if (!opts.callbackUrl) {
       throw new Error(
-        'You should provide `opts.callbackUrl`. Allowed ports 80, 443. On this urls bank server will send you response.',
+        'You should provide `opts.callbackUrl`. Allowed ports 80, 443. On this urls bank server will send you response.'
       );
     }
 
     if (!opts.successUrl) {
       throw new Error(
-        'You should provide `opts.successUrl`. Client will be redirected on this url after success payment.',
+        'You should provide `opts.successUrl`. Client will be redirected on this url after success payment.'
       );
     }
 
     if (!opts.failureUrl) {
       throw new Error(
-        'You should provide `opts.failureUrl`. Client will be redirected on this url after failure payment.',
+        'You should provide `opts.failureUrl`. Client will be redirected on this url after failure payment.'
       );
     }
 
@@ -328,9 +325,9 @@ export default class KkbEpayClient {
 
       const code = objectPath.get(res, 'results.payment.response_code');
       if (code !== '00') {
-        return Promise.reject(new Error(
-          `results.payment.response_code: ${code} is not equal to 00`,
-        ));
+        return Promise.reject(
+          new Error(`results.payment.response_code: ${code} is not equal to 00`)
+        );
       }
 
       // const merchantId = objectPath.get(res, 'results.payment.merchant_id');
@@ -397,7 +394,8 @@ export default class KkbEpayClient {
 
     const merchantTag = this._createXml('merchant', merchantObj);
     const merchantSign = await this._sign(merchantTag);
-    return `<document>${merchantTag}<merchant_sign type="RSA" cert_id="${this.opts.merchantCertificateId}">${merchantSign}</merchant_sign></document>`;
+    return `<document>${merchantTag}<merchant_sign type="RSA" cert_id="${this.opts
+      .merchantCertificateId}">${merchantSign}</merchant_sign></document>`;
   }
 
   async _processResponseChangePayment(xml: string): Promise<Object> {
@@ -426,15 +424,15 @@ export default class KkbEpayClient {
   async changePayment(opts: ChangePaymentOptsT): Promise<Object> {
     if (
       !opts ||
-        !opts.cmd ||
-        !opts.reference ||
-        !opts.approvalCode ||
-        !opts.orderId ||
-        !opts.amount ||
-        !opts.currency
+      !opts.cmd ||
+      !opts.reference ||
+      !opts.approvalCode ||
+      !opts.orderId ||
+      !opts.amount ||
+      !opts.currency
     ) {
       throw new Error(
-        'You should provide all required options: { cmd, reference, approvalCode, orderId, amount, currency}',
+        'You should provide all required options: { cmd, reference, approvalCode, orderId, amount, currency}'
       );
     }
 
@@ -444,7 +442,7 @@ export default class KkbEpayClient {
 
     const xml = await this._changePaymentXml(opts);
     const resXml = await fetch(
-      `${this.getChangePaymentUrl()}?${encodeURIComponent(xml)}`,
+      `${this.getChangePaymentUrl()}?${encodeURIComponent(xml)}`
     ).then(res => res.text());
 
     return this._processResponseChangePayment(resXml);

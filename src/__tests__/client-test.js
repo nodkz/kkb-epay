@@ -225,7 +225,7 @@ describe('KkbEpayClient', () => {
 
     it('should reject with error invalid <bank_sign>', async () => {
       const xml = await client._readFile(
-        path.resolve(__dirname, '../__mocks__/createOrderResponseInvalidSign.txt'),
+        path.resolve(__dirname, '../__mocks__/createOrderResponseInvalidSign.txt')
       );
 
       try {
@@ -237,7 +237,7 @@ describe('KkbEpayClient', () => {
 
     it('should resolve with <bank> data', async () => {
       const xml = await client._readFile(
-        path.resolve(__dirname, '../__mocks__/createOrderResponse.txt'),
+        path.resolve(__dirname, '../__mocks__/createOrderResponse.txt')
       );
       const result = await client._parseBankResponse(xml.trim());
       expect(result).toBeDefined();
@@ -289,7 +289,7 @@ describe('KkbEpayClient', () => {
 
     it('should match success response', async () => {
       const xml = await client._readFile(
-        path.resolve(__dirname, '../__mocks__/createOrderResponse.txt'),
+        path.resolve(__dirname, '../__mocks__/createOrderResponse.txt')
       );
       const result = await client._parseBankResponse(xml.trim());
       expect(client._beautifyResponse(result)).toEqual({
@@ -330,7 +330,7 @@ describe('KkbEpayClient', () => {
 
     it('should match error response', async () => {
       const xml = await client._readFile(
-        path.resolve(__dirname, '../__mocks__/createOrderResponseError.txt'),
+        path.resolve(__dirname, '../__mocks__/createOrderResponseError.txt')
       );
       const result = await client._parseXml(xml);
       expect(client._beautifyResponse(result)).toEqual({
@@ -449,7 +449,8 @@ describe('KkbEpayClient', () => {
         FailureBackLink: '/failure',
         Language: 'rus',
         PostLink: '/process',
-        Signed_Order_B64: 'PGRvY3VtZW50PjxtZXJjaGFudCBjZXJ0X2lkPSIwMEMxODJCMTg5IiBuYW1lPSJUZXN0IHNob3AiPjxvcmRlciBvcmRlcl9pZD0iMDAwMDAxIiBhbW91bnQ9IjUwMCIgY3VycmVuY3k9IjM5OCI+PGRlcGFydG1lbnQgbWVyY2hhbnRfaWQ9IjkyMDYxMTAxIiBhbW91bnQ9IjUwMCIvPjwvb3JkZXI+PC9tZXJjaGFudD48bWVyY2hhbnRfc2lnbiB0eXBlPSJSU0EiPlBEcVZEMkpSNzhzUjI3SUxodjFvZk5GeFF5aVp0anQ3UHRFV2NORlBIRVZRODJGRlRCMVcyWmZuazhHcHdSMlF6dnRNb0U0QzlJbkVSTjlGWkRHMkR3PT08L21lcmNoYW50X3NpZ24+PC9kb2N1bWVudD4=',
+        Signed_Order_B64:
+          'PGRvY3VtZW50PjxtZXJjaGFudCBjZXJ0X2lkPSIwMEMxODJCMTg5IiBuYW1lPSJUZXN0IHNob3AiPjxvcmRlciBvcmRlcl9pZD0iMDAwMDAxIiBhbW91bnQ9IjUwMCIgY3VycmVuY3k9IjM5OCI+PGRlcGFydG1lbnQgbWVyY2hhbnRfaWQ9IjkyMDYxMTAxIiBhbW91bnQ9IjUwMCIvPjwvb3JkZXI+PC9tZXJjaGFudD48bWVyY2hhbnRfc2lnbiB0eXBlPSJSU0EiPlBEcVZEMkpSNzhzUjI3SUxodjFvZk5GeFF5aVp0anQ3UHRFV2NORlBIRVZRODJGRlRCMVcyWmZuazhHcHdSMlF6dnRNb0U0QzlJbkVSTjlGWkRHMkR3PT08L21lcmNoYW50X3NpZ24+PC9kb2N1bWVudD4=',
         email: '',
       });
     });
@@ -464,7 +465,7 @@ describe('KkbEpayClient', () => {
 
     it('should resolve with parsed data on valid response', async () => {
       const validResponseXml = await client._readFile(
-        path.resolve(__dirname, '../__mocks__/createOrderResponse.txt'),
+        path.resolve(__dirname, '../__mocks__/createOrderResponse.txt')
       );
 
       const res = await client.processResponseCreateOrder(validResponseXml);
@@ -542,7 +543,7 @@ describe('KkbEpayClient', () => {
 
     it('should resolve with parsed data on valid response', async () => {
       const validResponseXml = await client._readFile(
-        path.resolve(__dirname, '../__mocks__/changePaymentResponse.txt'),
+        path.resolve(__dirname, '../__mocks__/changePaymentResponse.txt')
       );
 
       const res = await client._processResponseChangePayment(validResponseXml);
@@ -585,15 +586,17 @@ describe('KkbEpayClient', () => {
     });
 
     it('should reject with error on wrong cmd', () => {
-      return client
-        // $FlowFixMe
-        .changePayment({
-          ...changePaymentOpts,
-          cmd: 'non-existed',
-        })
-        .catch(e => {
-          expect(e.message).toContain('reverse, complete, refund');
-        });
+      return (
+        client
+          // $FlowFixMe
+          .changePayment({
+            ...changePaymentOpts,
+            cmd: 'non-existed',
+          })
+          .catch(e => {
+            expect(e.message).toContain('reverse, complete, refund');
+          })
+      );
     });
 
     // this test makes request to Kazkom server
