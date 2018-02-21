@@ -21,30 +21,30 @@
   },
   "homepage": "https://github.com/nodkz/kkb-epay",
   "devDependencies": {
-    "babel-cli": "^6.24.1",
-    "babel-eslint": "^7.2.3",
+    "babel-cli": "^6.26.0",
+    "babel-eslint": "^8.2.2",
     "babel-plugin-transform-flow-strip-types": "^6.22.0",
-    "babel-plugin-transform-object-rest-spread": "^6.23.0",
-    "babel-preset-env": "^1.5.2",
-    "cz-conventional-changelog": "^2.0.0",
-    "eslint": "^4.0.0",
-    "eslint-config-airbnb-base": "^11.2.0",
-    "eslint-config-prettier": "^2.2.0",
-    "eslint-plugin-flowtype": "^2.34.0",
-    "eslint-plugin-import": "^2.3.0",
-    "eslint-plugin-prettier": "^2.1.2",
-    "flow-bin": "^0.48.0",
-    "jest": "^20.0.4",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "cz-conventional-changelog": "^2.1.0",
+    "eslint": "^4.18.1",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-plugin-flowtype": "^2.45.0",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-prettier": "^2.6.0",
+    "flow-bin": "^0.66.0",
+    "jest": "^22.4.0",
     "jest-babel": "^1.0.1",
-    "npm-run-all": "^4.0.2",
-    "prettier": "^1.4.4",
-    "rimraf": "^2.6.1",
-    "semantic-release": "^6.3.2"
+    "npm-run-all": "^4.1.2",
+    "prettier": "^1.10.2",
+    "rimraf": "^2.6.2",
+    "semantic-release": "^12.4.1"
   },
   "dependencies": {
-    "node-fetch": "^1.7.1",
+    "node-fetch": "^2.0.0",
     "object-path": "^0.11.4",
-    "xml2js": "^0.4.17"
+    "xml2js": "^0.4.19"
   },
   "peerDependencies": {},
   "scripts": {
@@ -59,7 +59,7 @@
     "test": "npm run coverage && npm run lint && npm run flow",
     "link": "yarn link graphql && yarn link",
     "unlink": "yarn unlink graphql && yarn add graphql",
-    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
+    "semantic-release": "semantic-release"
   },
   "jest": {
     "roots": [
