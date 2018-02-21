@@ -305,7 +305,7 @@ export default class KkbEpayClient {
     }
 
     const signedOrder = await this._createOrderXML(opts.orderId, opts.amount, opts.currency);
-    const signedOrderBuffer = new Buffer(signedOrder);
+    const signedOrderBuffer = Buffer.from(signedOrder);
 
     return {
       email: opts.email || '',
@@ -394,8 +394,9 @@ export default class KkbEpayClient {
 
     const merchantTag = this._createXml('merchant', merchantObj);
     const merchantSign = await this._sign(merchantTag);
-    return `<document>${merchantTag}<merchant_sign type="RSA" cert_id="${this.opts
-      .merchantCertificateId}">${merchantSign}</merchant_sign></document>`;
+    return `<document>${merchantTag}<merchant_sign type="RSA" cert_id="${
+      this.opts.merchantCertificateId
+    }">${merchantSign}</merchant_sign></document>`;
   }
 
   async _processResponseChangePayment(xml: string): Promise<Object> {
@@ -441,9 +442,9 @@ export default class KkbEpayClient {
     }
 
     const xml = await this._changePaymentXml(opts);
-    const resXml = await fetch(
-      `${this.getChangePaymentUrl()}?${encodeURIComponent(xml)}`
-    ).then(res => res.text());
+    const resXml = await fetch(`${this.getChangePaymentUrl()}?${encodeURIComponent(xml)}`).then(
+      res => res.text()
+    );
 
     return this._processResponseChangePayment(resXml);
   }
